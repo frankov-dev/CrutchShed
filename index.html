@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Розклад занять</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 min-h-screen pb-16">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3">
+        <div class="max-w-xl mx-auto flex items-center justify-between">
+            <h1 class="text-lg font-bold tracking-tight text-gray-900 flex items-center gap-2">
+                <span>📅</span> Розклад занять
+            </h1>
+        </div>
+    </header>
+
+    <!-- Горизонтальний вибір днів -->
+    <div class="max-w-xl mx-auto px-4 mt-4">
+        <div id="days-nav" class="flex gap-2 overflow-x-auto pb-2 scrollbar-none text-sm font-medium"></div>
+    </div>
+
+    <!-- Список пар -->
+    <main class="max-w-xl mx-auto px-4 mt-4">
+        <div id="active-date-title" class="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider"></div>
+        <div id="lessons-list" class="space-y-3">
+            <!-- Тут рендеряться картки пар -->
+        </div>
+    </main>
+
+    <script>
+        let scheduleData = [];
+        let activeDateIndex = 0;
+
+        async function loadSchedule() {
+            try {
+                const response = await fetch('schedule.json');
+                scheduleData = await response.json();
+
+                if (!scheduleData.length) {
+                    document.getElementById('lessons-list').innerHTML = `<div class="p-4 text-center text-gray-500">Розклад порожній</div>`;
+                    return;
+                }
+
+                // Шукаємо сьогоднішню або найближчу дату
+                const todayStr = new Date().toLocaleDateString('uk-UA', {
+                    day: '2-digit', month: '2-digit', year: 'numeric'
+                }).replace(/\//g, '.');
+
+                const foundIndex = scheduleData.findIndex(day => day.date === todayStr);
+                activeDateIndex = foundIndex !== -1 ? foundIndex : 0;
+
+                renderDaysNav();
+                renderSchedule();
+            } catch (err) {
+                document.getElementById('lessons-list').innerHTML = `
+          <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+            Не вдалося завантажити schedule.json. Переконайся, що файл існує.
+          </div>`;
+            }
+        }
+
+        function renderDaysNav() {
+            const nav = document.getElementById('days-nav');
+            nav.innerHTML = '';
+
+            scheduleData.forEach((day, index) => {
+                const btn = document.createElement('button');
+                const isActive = index === activeDateIndex;
+
+                btn.className = `px-4 py-2 rounded-xl whitespace-nowrap transition-all border ${isActive
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`;
+
+                btn.innerText = day.date.slice(0, 5); // Показує тільки ДД.ММ
+                btn.onclick = () => {
+                    activeDateIndex = index;
+                    renderDaysNav();
+                    renderSchedule();
+                };
+                nav.appendChild(btn);
+            });
+        }
+
+        function renderSchedule() {
+            const list = document.getElementById('lessons-list');
+            const currentDay = scheduleData[activeDateIndex];
+
+            document.getElementById('active-date-title').innerText = `Розклад на ${currentDay.date}`;
+            list.innerHTML = '';
+
+            // Фільтруємо пари, де є реальні предмети
+            const validSlots = currentDay.lessons.filter(slot => {
+                return slot.lessons && slot.lessons.length > 0;
+            });
+
+            if (validSlots.length === 0) {
+                list.innerHTML = `
+          <div class="p-8 text-center rounded-2xl bg-white border border-gray-200 text-gray-500 shadow-sm">
+            <div class="text-3xl mb-2">🎉</div>
+            Пар немає!
+          </div>`;
+                return;
+            }
+
+            validSlots.forEach(slot => {
+                const slotCard = document.createElement('div');
+                slotCard.className = 'p-4 rounded-2xl bg-white border border-gray-200 flex flex-col gap-3 shadow-sm';
+
+                let lessonsHtml = slot.lessons.map(l => {
+                    const isLab = l.type.toLowerCase().includes('лаб');
+                    const badgeClass = isLab ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-blue-100 text-blue-800 border-blue-200';
+
+                    return `
+            <div class="flex flex-col gap-1 border-t border-gray-100 pt-3 mt-1 first:border-none first:pt-0 first:mt-0">
+              <div class="flex items-start justify-between gap-2">
+                <span class="font-semibold text-gray-900 text-base leading-snug">${l.subject}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full border ${badgeClass} font-medium">${l.type || 'Пара'}</span>
+              </div>
+              <div class="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
+                <span>👤</span> <span>${l.teacher || 'Викладач не вказаний'}</span>
+              </div>
+              <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+                <span class="bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200 font-medium text-gray-700">📍 Ауд. ${l.room || '—'}</span>
+                <span class="text-gray-400 font-medium">${l.group || ''}</span>
+              </div>
+            </div>
+          `;
+                }).join('');
+
+                slotCard.innerHTML = `
+          <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-1 text-xs text-gray-500 uppercase tracking-wide">
+            <span class="font-bold text-gray-900">Пара №${slot.number}</span>
+            <span class="font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded border border-gray-200">${slot.start} – ${slot.end}</span>
+          </div>
+          ${lessonsHtml}
+        `;
+
+                list.appendChild(slotCard);
+            });
+        }
+
+        loadSchedule();
+    </script>
+</body>
+
+</html>
