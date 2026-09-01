@@ -8,23 +8,33 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/crutch.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/crutch.png">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#f8fafc">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
 
         body {
             font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Ховаємо скроллбар для date tabs */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 </head>
 
-<body class="bg-gray-50 text-gray-900 min-h-screen pb-16">
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-16">
 
     <!-- Header -->
-    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3">
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3">
         <div class="max-w-xl mx-auto flex items-center justify-between">
-            <h1 class="text-lg font-bold tracking-tight text-gray-900 flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
                 <span>🩼</span> Розклад занять
             </h1>
         </div>
@@ -32,20 +42,57 @@
 
     <!-- Горизонтальний вибір днів -->
     <div class="max-w-xl mx-auto px-4 mt-4">
-        <div id="days-nav" class="flex gap-2 overflow-x-auto pb-2 scrollbar-none text-sm font-medium"></div>
+        <!-- Додано pt-2 щоб absolute badge "Сьогодні" не обрізався -->
+        <div id="days-nav" class="flex gap-2 overflow-x-auto pb-2 pt-2 no-scrollbar"></div>
     </div>
 
     <!-- Список пар -->
     <main class="max-w-xl mx-auto px-4 mt-4">
-        <div id="active-date-title" class="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider"></div>
-        <div id="lessons-list" class="space-y-3">
+        <div id="active-date-title" class="text-lg font-bold text-slate-800 mb-3.5"></div>
+        <div id="lessons-list" class="space-y-2.5">
             <!-- Тут рендеряться картки пар -->
         </div>
     </main>
 
     <script>
+        const monthsGenitive = ["січня", "лютого", "березня", "квітня", "травня", "червня", "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"];
+        const monthsShort = ["СІЧ", "ЛЮТ", "БЕР", "КВІ", "ТРА", "ЧЕР", "ЛИП", "СЕР", "ВЕР", "ЖОВ", "ЛИС", "ГРУ"];
+        const daysOfWeekShort = ["НД", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
+        const daysOfWeekFull = ["Неділя", "Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота"];
+
         let scheduleData = [];
         let activeDateIndex = 0;
+        let todayStr = '';
+
+        function parseDateStr(dateStr) {
+            const [d, m, y] = dateStr.split('.');
+            return new Date(y, m - 1, d);
+        }
+
+        function getBadgeClass(type) {
+            if (!type) return 'bg-slate-50 text-slate-600 border border-slate-200';
+            const t = type.toLowerCase();
+            if (t.includes('лаб')) return 'bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200';
+            if (t.includes('пр')) return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+            if (t.includes('л')) return 'bg-blue-50 text-blue-700 border border-blue-200';
+            return 'bg-slate-50 text-slate-600 border border-slate-200';
+        }
+
+        function isNowTime(startStr, endStr, dateStr) {
+            const today = new Date();
+            const [d, m, y] = dateStr.split('.');
+            if (today.getDate() !== parseInt(d) || (today.getMonth() + 1) !== parseInt(m) || today.getFullYear() !== parseInt(y)) {
+                return false;
+            }
+            
+            const [startH, startM] = startStr.split(':').map(Number);
+            const [endH, endM] = endStr.split(':').map(Number);
+            const nowTotal = today.getHours() * 60 + today.getMinutes();
+            const startTotal = startH * 60 + startM;
+            const endTotal = endH * 60 + endM;
+            
+            return nowTotal >= startTotal && nowTotal <= endTotal;
+        }
 
         async function loadSchedule() {
             try {
@@ -53,20 +100,24 @@
                 scheduleData = await response.json();
 
                 if (!scheduleData.length) {
-                    document.getElementById('lessons-list').innerHTML = `<div class="p-4 text-center text-gray-500">Розклад порожній</div>`;
+                    document.getElementById('lessons-list').innerHTML = `<div class="p-4 text-center text-slate-500">Розклад порожній</div>`;
                     return;
                 }
 
-                // Шукаємо сьогоднішню або найближчу дату
-                const todayStr = new Date().toLocaleDateString('uk-UA', {
-                    day: '2-digit', month: '2-digit', year: 'numeric'
-                }).replace(/\//g, '.');
+                const today = new Date();
+                todayStr = [
+                    today.getDate().toString().padStart(2, '0'),
+                    (today.getMonth() + 1).toString().padStart(2, '0'),
+                    today.getFullYear()
+                ].join('.');
 
                 const foundIndex = scheduleData.findIndex(day => day.date === todayStr);
                 activeDateIndex = foundIndex !== -1 ? foundIndex : 0;
 
                 renderDaysNav();
                 renderSchedule();
+                
+                setInterval(renderSchedule, 60000);
             } catch (err) {
                 document.getElementById('lessons-list').innerHTML = `
           <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
@@ -82,17 +133,37 @@
             scheduleData.forEach((day, index) => {
                 const btn = document.createElement('button');
                 const isActive = index === activeDateIndex;
+                const isToday = day.date === todayStr;
+                const d = parseDateStr(day.date);
+                
+                const dayOfWeek = daysOfWeekShort[d.getDay()];
+                const dateNum = d.getDate().toString().padStart(2, '0');
+                const monthStr = monthsShort[d.getMonth()];
 
-                btn.className = `px-4 py-2 rounded-xl whitespace-nowrap transition-all border ${isActive
-                    ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                // Очищений selected state: тільки solid blue background і shadow
+                btn.className = `relative flex flex-col items-center justify-center min-w-[54px] py-1.5 px-1 rounded-xl transition-all border shrink-0 ${isActive
+                    ? 'bg-blue-600 border-blue-600 shadow-md'
+                    : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`;
 
-                btn.innerText = day.date.slice(0, 5); // Показує тільки ДД.ММ
+                let indicatorHtml = '';
+                if (isToday) {
+                    // Зрозумілий індикатор Сьогодні
+                    indicatorHtml = `<span class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shadow-sm z-10 whitespace-nowrap">Сьогодні</span>`;
+                }
+
+                btn.innerHTML = `
+                    ${indicatorHtml}
+                    <span class="text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isActive ? 'text-blue-100' : 'text-slate-400'}">${dayOfWeek}</span>
+                    <span class="text-[19px] font-black leading-none ${isActive ? 'text-white' : 'text-slate-900'}">${dateNum}</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isActive ? 'text-blue-100' : 'text-slate-400'}">${monthStr}</span>
+                `;
+                
                 btn.onclick = () => {
                     activeDateIndex = index;
                     renderDaysNav();
                     renderSchedule();
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 };
                 nav.appendChild(btn);
             });
@@ -101,56 +172,90 @@
         function renderSchedule() {
             const list = document.getElementById('lessons-list');
             const currentDay = scheduleData[activeDateIndex];
+            
+            const d = parseDateStr(currentDay.date);
+            const titleText = `${daysOfWeekFull[d.getDay()]}, ${d.getDate()} ${monthsGenitive[d.getMonth()]}`;
 
-            document.getElementById('active-date-title').innerText = `Розклад на ${currentDay.date}`;
+            document.getElementById('active-date-title').innerText = titleText;
             list.innerHTML = '';
 
-            // Фільтруємо пари, де є реальні предмети
-            const validSlots = currentDay.lessons.filter(slot => {
-                return slot.lessons && slot.lessons.length > 0;
-            });
-
-            if (validSlots.length === 0) {
+            if (!currentDay.lessons || currentDay.lessons.length === 0) {
                 list.innerHTML = `
-          <div class="p-8 text-center rounded-2xl bg-white border border-gray-200 text-gray-500 shadow-sm">
+          <div class="p-8 text-center rounded-2xl bg-white border border-slate-200 text-slate-500 shadow-sm">
             <div class="text-3xl mb-2">🎉</div>
             Пар немає!
           </div>`;
                 return;
             }
 
-            validSlots.forEach(slot => {
+            currentDay.lessons.forEach(slot => {
+                const isNow = isNowTime(slot.start, slot.end, currentDay.date);
+                const isEmpty = !slot.lessons || slot.lessons.length === 0;
+
                 const slotCard = document.createElement('div');
-                slotCard.className = 'p-4 rounded-2xl bg-white border border-gray-200 flex flex-col gap-3 shadow-sm';
 
-                let lessonsHtml = slot.lessons.map(l => {
-                    const isLab = l.type.toLowerCase().includes('лаб');
-                    const badgeClass = isLab ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-blue-100 text-blue-800 border-blue-200';
+                if (isEmpty) {
+                    slotCard.className = 'flex items-center justify-between py-2 px-3 rounded-xl border border-slate-200 bg-slate-50/70 opacity-75';
+                    slotCard.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-bold text-slate-400 w-4 text-center leading-none">${slot.number}</span>
+                            <span class="text-[13px] font-semibold text-slate-500">${slot.start} — ${slot.end}</span>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded">Вільно</span>
+                    `;
+                } else {
+                    let lessonsHtml = slot.lessons.map((l, idx) => {
+                        const isNotLast = idx < slot.lessons.length - 1;
+                        const cleanedGroup = (l.group || '').replace(/[()]/g, '').trim();
+                        
+                        // Посилений розділювач між підгрупами: border-slate-200 і достатній відступ
+                        return `
+                        <div class="flex flex-col gap-1.5 relative ${isNotLast ? 'border-b border-slate-200 pb-2.5 mb-0.5' : ''}">
+                            <div class="flex items-start justify-between gap-3">
+                                <h3 class="text-sm font-bold text-slate-900 leading-tight">${l.subject}</h3>
+                                <span class="shrink-0 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ${getBadgeClass(l.type)}">${l.type || 'Пара'}</span>
+                            </div>
+                            
+                            <div class="flex items-start gap-1.5 text-xs text-slate-600">
+                                <span class="shrink-0 text-slate-400 mt-[1px]">👤</span>
+                                <span class="leading-snug font-medium">${l.teacher || 'Не вказано'}</span>
+                            </div>
+                            
+                            <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                ${l.room ? `
+                                <div class="flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">
+                                    <span class="text-slate-400">📍</span> ${l.room}
+                                </div>` : ''}
+                                
+                                ${cleanedGroup ? `
+                                <div class="flex items-center text-[11px] font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">
+                                    ${cleanedGroup}
+                                </div>` : ''}
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
 
-                    return `
-            <div class="flex flex-col gap-1 border-t border-gray-100 pt-3 mt-1 first:border-none first:pt-0 first:mt-0">
-              <div class="flex items-start justify-between gap-2">
-                <span class="font-semibold text-gray-900 text-base leading-snug">${l.subject}</span>
-                <span class="text-xs px-2 py-0.5 rounded-full border ${badgeClass} font-medium">${l.type || 'Пара'}</span>
-              </div>
-              <div class="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
-                <span>👤</span> <span>${l.teacher || 'Викладач не вказаний'}</span>
-              </div>
-              <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
-                <span class="bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200 font-medium text-gray-700">📍 Ауд. ${l.room || '—'}</span>
-                <span class="text-gray-400 font-medium">${l.group || ''}</span>
-              </div>
-            </div>
-          `;
-                }).join('');
-
-                slotCard.innerHTML = `
-          <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-1 text-xs text-gray-500 uppercase tracking-wide">
-            <span class="font-bold text-gray-900">Пара №${slot.number}</span>
-            <span class="font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded border border-gray-200">${slot.start} – ${slot.end}</span>
-          </div>
-          ${lessonsHtml}
-        `;
+                    slotCard.className = `flex bg-white rounded-xl border transition-all ${isNow ? 'border-blue-400 shadow-md ring-1 ring-blue-400' : 'border-slate-200 shadow-sm'} overflow-hidden relative`;
+                    
+                    // Звужена ліва колонка (w-12 = 48px замість 68px)
+                    // Номер пари другорядний, час основний
+                    slotCard.innerHTML = `
+                        ${isNow ? '<div class="absolute top-0 left-0 bottom-0 w-1 bg-blue-500"></div>' : ''}
+                        
+                        <div class="w-12 shrink-0 bg-slate-50 flex flex-col items-center py-2.5 border-r border-slate-100 ${isNow ? 'bg-blue-50/40' : ''} ${isNow ? 'pl-1' : ''}">
+                            <span class="text-[9px] font-semibold text-slate-400 mb-1 leading-none opacity-80">${slot.number}</span>
+                            <span class="text-xs font-bold text-slate-800 leading-none">${slot.start}</span>
+                            <span class="text-[9px] font-semibold text-slate-300 my-1 leading-none">—</span>
+                            <span class="text-xs font-bold text-slate-800 leading-none">${slot.end}</span>
+                            ${isNow ? '<span class="mt-2.5 text-[8px] font-black tracking-wider bg-blue-100 text-blue-700 px-1 py-0.5 rounded uppercase shadow-sm">Зараз</span>' : ''}
+                        </div>
+                        
+                        <div class="flex-1 flex flex-col p-2.5 gap-2.5">
+                           ${lessonsHtml}
+                        </div>
+                    `;
+                }
 
                 list.appendChild(slotCard);
             });
