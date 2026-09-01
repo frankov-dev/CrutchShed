@@ -12,7 +12,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
     </style>
 </head>
 
@@ -22,7 +25,7 @@
     <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3">
         <div class="max-w-xl mx-auto flex items-center justify-between">
             <h1 class="text-lg font-bold tracking-tight text-gray-900 flex items-center gap-2">
-                <span>📅</span> Розклад занять
+                <span>🩼</span> Розклад занять
             </h1>
         </div>
     </header>
@@ -81,8 +84,8 @@
                 const isActive = index === activeDateIndex;
 
                 btn.className = `px-4 py-2 rounded-xl whitespace-nowrap transition-all border ${isActive
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                     }`;
 
                 btn.innerText = day.date.slice(0, 5); // Показує тільки ДД.ММ
