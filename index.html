@@ -22,6 +22,7 @@
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
+
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
@@ -42,8 +43,8 @@
 
     <!-- Горизонтальний вибір днів -->
     <div class="max-w-xl mx-auto px-4 mt-4">
-        <!-- Додано pt-2 щоб absolute badge "Сьогодні" не обрізався -->
-        <div id="days-nav" class="flex gap-2 overflow-x-auto pb-2 pt-2 no-scrollbar"></div>
+        <!-- Збільшено pt-4 щоб absolute badge "Сьогодні" не обрізався -->
+        <div id="days-nav" class="flex gap-3 overflow-x-auto pb-2 pt-2 no-scrollbar"></div>
     </div>
 
     <!-- Список пар -->
@@ -84,13 +85,13 @@
             if (today.getDate() !== parseInt(d) || (today.getMonth() + 1) !== parseInt(m) || today.getFullYear() !== parseInt(y)) {
                 return false;
             }
-            
+
             const [startH, startM] = startStr.split(':').map(Number);
             const [endH, endM] = endStr.split(':').map(Number);
             const nowTotal = today.getHours() * 60 + today.getMinutes();
             const startTotal = startH * 60 + startM;
             const endTotal = endH * 60 + endM;
-            
+
             return nowTotal >= startTotal && nowTotal <= endTotal;
         }
 
@@ -116,7 +117,7 @@
 
                 renderDaysNav();
                 renderSchedule();
-                
+
                 setInterval(renderSchedule, 60000);
             } catch (err) {
                 document.getElementById('lessons-list').innerHTML = `
@@ -135,21 +136,20 @@
                 const isActive = index === activeDateIndex;
                 const isToday = day.date === todayStr;
                 const d = parseDateStr(day.date);
-                
+
                 const dayOfWeek = daysOfWeekShort[d.getDay()];
                 const dateNum = d.getDate().toString().padStart(2, '0');
                 const monthStr = monthsShort[d.getMonth()];
 
-                // Очищений selected state: тільки solid blue background і shadow
-                btn.className = `relative flex flex-col items-center justify-center min-w-[54px] py-1.5 px-1 rounded-xl transition-all border shrink-0 ${isActive
+                // Фіксована висота, щоб бейдж "СЬОГ" гармонійно вписувався всередині
+                btn.className = `relative flex flex-col items-center justify-center min-w-[54px] h-[72px] px-1 rounded-xl transition-all border shrink-0 ${isActive
                     ? 'bg-blue-600 border-blue-600 shadow-md'
                     : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`;
 
                 let indicatorHtml = '';
                 if (isToday) {
-                    // Зрозумілий індикатор Сьогодні
-                    indicatorHtml = `<span class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shadow-sm z-10 whitespace-nowrap">Сьогодні</span>`;
+                    indicatorHtml = `<span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-red-500'} mb-1.5 shadow-sm"></span>`;
                 }
 
                 btn.innerHTML = `
@@ -158,7 +158,7 @@
                     <span class="text-[19px] font-black leading-none ${isActive ? 'text-white' : 'text-slate-900'}">${dateNum}</span>
                     <span class="text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isActive ? 'text-blue-100' : 'text-slate-400'}">${monthStr}</span>
                 `;
-                
+
                 btn.onclick = () => {
                     activeDateIndex = index;
                     renderDaysNav();
@@ -172,7 +172,7 @@
         function renderSchedule() {
             const list = document.getElementById('lessons-list');
             const currentDay = scheduleData[activeDateIndex];
-            
+
             const d = parseDateStr(currentDay.date);
             const titleText = `${daysOfWeekFull[d.getDay()]}, ${d.getDate()} ${monthsGenitive[d.getMonth()]}`;
 
@@ -195,20 +195,19 @@
                 const slotCard = document.createElement('div');
 
                 if (isEmpty) {
-                    slotCard.className = 'flex items-center justify-between py-2 px-3 rounded-xl border border-slate-200 bg-slate-50/70 opacity-75';
+                    slotCard.className = 'flex items-center justify-between py-2 px-3 rounded-xl border border-slate-200 bg-slate-50 opacity-90';
                     slotCard.innerHTML = `
                         <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-bold text-slate-400 w-4 text-center leading-none">${slot.number}</span>
-                            <span class="text-[13px] font-semibold text-slate-500">${slot.start} — ${slot.end}</span>
+                            <span class="text-[10px] font-bold text-slate-500 w-4 text-center leading-none">${slot.number}</span>
+                            <span class="text-[13px] font-semibold text-slate-600">${slot.start} — ${slot.end}</span>
                         </div>
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded">Вільно</span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-200/50 px-2 py-0.5 rounded">Вільно</span>
                     `;
                 } else {
                     let lessonsHtml = slot.lessons.map((l, idx) => {
                         const isNotLast = idx < slot.lessons.length - 1;
                         const cleanedGroup = (l.group || '').replace(/[()]/g, '').trim();
-                        
-                        // Посилений розділювач між підгрупами: border-slate-200 і достатній відступ
+
                         return `
                         <div class="flex flex-col gap-1.5 relative ${isNotLast ? 'border-b border-slate-200 pb-2.5 mb-0.5' : ''}">
                             <div class="flex items-start justify-between gap-3">
@@ -235,16 +234,33 @@
                         </div>
                         `;
                     }).join('');
+                    
+                    let progressHtml = '';
+                    if (isNow) {
+                        const today = new Date();
+                        const nowMins = today.getHours() * 60 + today.getMinutes();
+                        const [startH, startM] = slot.start.split(':').map(Number);
+                        const [endH, endM] = slot.end.split(':').map(Number);
+                        const startMins = startH * 60 + startM;
+                        const endMins = endH * 60 + endM;
+                        
+                        let progress = ((nowMins - startMins) / (endMins - startMins)) * 100;
+                        progress = Math.max(0, Math.min(100, progress));
+                        
+                        progressHtml = `
+                            <div class="absolute left-12 right-0 h-[2px] bg-blue-500/80 shadow-[0_0_4px_rgba(59,130,246,0.4)] z-10 pointer-events-none" style="top: ${progress}%;"></div>
+                            <div class="absolute left-[45px] w-1.5 h-1.5 rounded-full bg-blue-600 z-10 pointer-events-none" style="top: calc(${progress}% - 2px);"></div>
+                        `;
+                    }
 
                     slotCard.className = `flex bg-white rounded-xl border transition-all ${isNow ? 'border-blue-400 shadow-md ring-1 ring-blue-400' : 'border-slate-200 shadow-sm'} overflow-hidden relative`;
-                    
-                    // Звужена ліва колонка (w-12 = 48px замість 68px)
-                    // Номер пари другорядний, час основний
+
                     slotCard.innerHTML = `
                         ${isNow ? '<div class="absolute top-0 left-0 bottom-0 w-1 bg-blue-500"></div>' : ''}
+                        ${progressHtml}
                         
                         <div class="w-12 shrink-0 bg-slate-50 flex flex-col items-center py-2.5 border-r border-slate-100 ${isNow ? 'bg-blue-50/40' : ''} ${isNow ? 'pl-1' : ''}">
-                            <span class="text-[9px] font-semibold text-slate-400 mb-1 leading-none opacity-80">${slot.number}</span>
+                            <span class="text-[10px] font-bold text-slate-500 mb-1 leading-none">${slot.number}</span>
                             <span class="text-xs font-bold text-slate-800 leading-none">${slot.start}</span>
                             <span class="text-[9px] font-semibold text-slate-300 my-1 leading-none">—</span>
                             <span class="text-xs font-bold text-slate-800 leading-none">${slot.end}</span>
