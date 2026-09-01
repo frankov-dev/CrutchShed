@@ -27,6 +27,25 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        @keyframes slideInRight {
+            from { transform: translateX(30px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideInLeft {
+            from { transform: translateX(-30px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+        .slide-in-left { animation: slideInLeft 0.3s ease-out forwards; }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
     </style>
 </head>
 
@@ -116,9 +135,9 @@
                 activeDateIndex = foundIndex !== -1 ? foundIndex : 0;
 
                 renderDaysNav();
-                renderSchedule();
+                renderSchedule('fade');
 
-                setInterval(renderSchedule, 60000);
+                setInterval(() => renderSchedule('none'), 60000);
             } catch (err) {
                 document.getElementById('lessons-list').innerHTML = `
           <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
@@ -160,16 +179,22 @@
                 `;
 
                 btn.onclick = () => {
+                    const prevIndex = activeDateIndex;
                     activeDateIndex = index;
                     renderDaysNav();
-                    renderSchedule();
+                    
+                    let anim = 'fade';
+                    if (index > prevIndex) anim = 'left';
+                    if (index < prevIndex) anim = 'right';
+                    
+                    renderSchedule(anim);
                     btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 };
                 nav.appendChild(btn);
             });
         }
 
-        function renderSchedule() {
+        function renderSchedule(animationType = 'fade') {
             const list = document.getElementById('lessons-list');
             const currentDay = scheduleData[activeDateIndex];
 
@@ -178,6 +203,17 @@
 
             document.getElementById('active-date-title').innerText = titleText;
             list.innerHTML = '';
+            
+            list.classList.remove('slide-in-right', 'slide-in-left', 'fade-in');
+            void list.offsetWidth; // Trigger reflow
+            
+            if (animationType === 'left') {
+                list.classList.add('slide-in-right');
+            } else if (animationType === 'right') {
+                list.classList.add('slide-in-left');
+            } else if (animationType === 'fade') {
+                list.classList.add('fade-in');
+            }
 
             if (!currentDay.lessons || currentDay.lessons.length === 0) {
                 list.innerHTML = `
@@ -276,6 +312,46 @@
                 list.appendChild(slotCard);
             });
         }
+
+        // Додаємо свайпи
+        let touchstartX = 0;
+        let touchendX = 0;
+
+        function handleGesture() {
+            if (touchendX < touchstartX - 50) {
+                // Swipe left (наступний день)
+                if (activeDateIndex < scheduleData.length - 1) {
+                    activeDateIndex++;
+                    renderDaysNav();
+                    renderSchedule('left');
+                    const nav = document.getElementById('days-nav');
+                    const activeBtn = nav.children[activeDateIndex];
+                    if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+            
+            if (touchendX > touchstartX + 50) {
+                // Swipe right (попередній день)
+                if (activeDateIndex > 0) {
+                    activeDateIndex--;
+                    renderDaysNav();
+                    renderSchedule('right');
+                    const nav = document.getElementById('days-nav');
+                    const activeBtn = nav.children[activeDateIndex];
+                    if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+        }
+
+        const mainArea = document.querySelector('main');
+        mainArea.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        mainArea.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            handleGesture();
+        }, { passive: true });
 
         loadSchedule();
     </script>
