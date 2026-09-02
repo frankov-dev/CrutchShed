@@ -271,36 +271,17 @@
                         `;
                     }).join('');
                     
-                    let progressHtml = '';
-                    if (isNow) {
-                        const today = new Date();
-                        const nowMins = today.getHours() * 60 + today.getMinutes();
-                        const [startH, startM] = slot.start.split(':').map(Number);
-                        const [endH, endM] = slot.end.split(':').map(Number);
-                        const startMins = startH * 60 + startM;
-                        const endMins = endH * 60 + endM;
-                        
-                        let progress = ((nowMins - startMins) / (endMins - startMins)) * 100;
-                        progress = Math.max(0, Math.min(100, progress));
-                        
-                        progressHtml = `
-                            <div class="absolute left-12 right-0 h-[2px] bg-blue-500/80 shadow-[0_0_4px_rgba(59,130,246,0.4)] z-10 pointer-events-none" style="top: ${progress}%;"></div>
-                            <div class="absolute left-[45px] w-1.5 h-1.5 rounded-full bg-blue-600 z-10 pointer-events-none" style="top: calc(${progress}% - 2px);"></div>
-                        `;
-                    }
-
                     slotCard.className = `flex bg-white rounded-xl border transition-all ${isNow ? 'border-blue-400 shadow-md ring-1 ring-blue-400' : 'border-slate-200 shadow-sm'} overflow-hidden relative`;
 
                     slotCard.innerHTML = `
-                        ${isNow ? '<div class="absolute top-0 left-0 bottom-0 w-1 bg-blue-500"></div>' : ''}
-                        ${progressHtml}
-                        
-                        <div class="w-12 shrink-0 bg-slate-50 flex flex-col items-center py-2.5 border-r border-slate-100 ${isNow ? 'bg-blue-50/40' : ''} ${isNow ? 'pl-1' : ''}">
-                            <span class="text-[10px] font-bold text-slate-500 mb-1 leading-none">${slot.number}</span>
+                        <div class="w-14 shrink-0 bg-slate-50 flex flex-col items-center py-2.5 border-r border-slate-100 ${isNow ? 'bg-blue-50/40' : ''}">
+                            <div class="flex items-center justify-center gap-1.5 mb-1">
+                                ${isNow ? '<span class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50"></span>' : ''}
+                                <span class="text-[10px] font-bold ${isNow ? 'text-blue-600' : 'text-slate-500'} leading-none">${slot.number}</span>
+                            </div>
                             <span class="text-xs font-bold text-slate-800 leading-none">${slot.start}</span>
                             <span class="text-[9px] font-semibold text-slate-300 my-1 leading-none">—</span>
                             <span class="text-xs font-bold text-slate-800 leading-none">${slot.end}</span>
-                            ${isNow ? '<span class="mt-2.5 text-[8px] font-black tracking-wider bg-blue-100 text-blue-700 px-1 py-0.5 rounded uppercase shadow-sm">Зараз</span>' : ''}
                         </div>
                         
                         <div class="flex-1 flex flex-col p-2.5 gap-2.5">
