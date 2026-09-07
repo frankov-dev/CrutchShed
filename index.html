@@ -8,8 +8,21 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/crutch.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/crutch.png">
-    <meta name="theme-color" content="#f8fafc">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
+    <script>
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
 
@@ -29,34 +42,65 @@
         }
 
         @keyframes slideInRight {
-            from { transform: translateX(30px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
-        
+
         @keyframes slideInLeft {
-            from { transform: translateX(-30px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(-30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
-        
+
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
-        
-        .slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
-        .slide-in-left { animation: slideInLeft 0.3s ease-out forwards; }
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+        .slide-in-right {
+            animation: slideInRight 0.3s ease-out forwards;
+        }
+
+        .slide-in-left {
+            animation: slideInLeft 0.3s ease-out forwards;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-900 min-h-screen pb-16">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen pb-16 transition-colors duration-300">
 
     <!-- Header -->
-    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3">
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 transition-colors duration-300">
         <div class="max-w-xl mx-auto flex items-center justify-between">
-            <h1 class="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <span>🩼</span> Розклад занять
             </h1>
+            <button id="theme-toggle" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors" aria-label="Toggle theme">
+                <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+            </button>
         </div>
     </header>
 
@@ -68,14 +112,15 @@
 
     <!-- Список пар -->
     <main class="max-w-xl mx-auto px-4 mt-4">
-        <div id="active-date-title" class="text-lg font-bold text-slate-800 mb-3.5"></div>
+        <div id="active-date-title" class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-3.5 transition-colors"></div>
         <div id="lessons-list" class="space-y-2.5">
             <!-- Тут рендеряться картки пар -->
         </div>
     </main>
 
     <script>
-        const monthsGenitive = ["січня", "лютого", "березня", "квітня", "травня", "червня", "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"];
+        const
+            monthsGenitive = ["січня", "лютого", "березня", "квітня", "травня", "червня", "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"];
         const monthsShort = ["СІЧ", "ЛЮТ", "БЕР", "КВІ", "ТРА", "ЧЕР", "ЛИП", "СЕР", "ВЕР", "ЖОВ", "ЛИС", "ГРУ"];
         const daysOfWeekShort = ["НД", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
         const daysOfWeekFull = ["Неділя", "Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота"];
@@ -90,12 +135,12 @@
         }
 
         function getBadgeClass(type) {
-            if (!type) return 'bg-slate-50 text-slate-600 border border-slate-200';
+            if (!type) return 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
             const t = type.toLowerCase();
-            if (t.includes('лаб')) return 'bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200';
-            if (t.includes('пр')) return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-            if (t.includes('л')) return 'bg-blue-50 text-blue-700 border border-blue-200';
-            return 'bg-slate-50 text-slate-600 border border-slate-200';
+            if (t.includes('лаб')) return 'bg-fuchsia-50 dark:bg-fuchsia-900/30 text-fuchsia-700 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800/50';
+            if (t.includes('пр')) return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50';
+            if (t.includes('л')) return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50';
+            return 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
         }
 
         function isNowTime(startStr, endStr, dateStr) {
@@ -163,30 +208,30 @@
                 // Фіксована висота, щоб бейдж "СЬОГ" гармонійно вписувався всередині
                 btn.className = `relative flex flex-col items-center justify-center min-w-[54px] h-[72px] px-1 rounded-xl transition-all border shrink-0 ${isActive
                     ? 'bg-blue-600 border-blue-600 shadow-md'
-                    : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`;
 
                 let indicatorHtml = '';
                 if (isToday) {
-                    indicatorHtml = `<span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-red-500'} mb-1.5 shadow-sm"></span>`;
+                    indicatorHtml = `<span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-red-500 dark:bg-red-600'} mb-1.5 shadow-sm"></span>`;
                 }
 
                 btn.innerHTML = `
                     ${indicatorHtml}
-                    <span class="text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isActive ? 'text-blue-100' : 'text-slate-400'}">${dayOfWeek}</span>
-                    <span class="text-[19px] font-black leading-none ${isActive ? 'text-white' : 'text-slate-900'}">${dateNum}</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isActive ? 'text-blue-100' : 'text-slate-400'}">${monthStr}</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isActive ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}">${dayOfWeek}</span>
+                    <span class="text-[19px] font-black leading-none ${isActive ? 'text-white' : 'text-slate-900 dark:text-slate-200'}">${dateNum}</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isActive ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}">${monthStr}</span>
                 `;
 
                 btn.onclick = () => {
                     const prevIndex = activeDateIndex;
                     activeDateIndex = index;
                     renderDaysNav();
-                    
+
                     let anim = 'fade';
                     if (index > prevIndex) anim = 'left';
                     if (index < prevIndex) anim = 'right';
-                    
+
                     renderSchedule(anim);
                     btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 };
@@ -203,10 +248,10 @@
 
             document.getElementById('active-date-title').innerText = titleText;
             list.innerHTML = '';
-            
+
             list.classList.remove('slide-in-right', 'slide-in-left', 'fade-in');
             void list.offsetWidth; // Trigger reflow
-            
+
             if (animationType === 'left') {
                 list.classList.add('slide-in-right');
             } else if (animationType === 'right') {
@@ -217,7 +262,7 @@
 
             if (!currentDay.lessons || currentDay.lessons.length === 0) {
                 list.innerHTML = `
-          <div class="p-8 text-center rounded-2xl bg-white border border-slate-200 text-slate-500 shadow-sm">
+          <div class="p-8 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 shadow-sm transition-colors">
             <div class="text-3xl mb-2">🎉</div>
             Пар немає!
           </div>`;
@@ -231,13 +276,13 @@
                 const slotCard = document.createElement('div');
 
                 if (isEmpty) {
-                    slotCard.className = 'flex items-center justify-between py-2 px-3 rounded-xl border border-slate-200 bg-slate-50 opacity-90';
+                    slotCard.className = 'flex items-center justify-between py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 opacity-90 transition-colors';
                     slotCard.innerHTML = `
                         <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-bold text-slate-500 w-4 text-center leading-none">${slot.number}</span>
-                            <span class="text-[13px] font-semibold text-slate-600">${slot.start} — ${slot.end}</span>
+                            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 w-4 text-center leading-none">${slot.number}</span>
+                            <span class="text-[13px] font-semibold text-slate-600 dark:text-slate-300">${slot.start} — ${slot.end}</span>
                         </div>
-                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-200/50 px-2 py-0.5 rounded">Вільно</span>
+                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-200/50 dark:bg-slate-800 px-2 py-0.5 rounded">Вільно</span>
                     `;
                 } else {
                     let lessonsHtml = slot.lessons.map((l, idx) => {
@@ -245,43 +290,43 @@
                         const cleanedGroup = (l.group || '').replace(/[()]/g, '').trim();
 
                         return `
-                        <div class="flex flex-col gap-1.5 relative ${isNotLast ? 'border-b border-slate-200 pb-2.5 mb-0.5' : ''}">
+                        <div class="flex flex-col gap-1.5 relative ${isNotLast ? 'border-b border-slate-200 dark:border-slate-800 pb-2.5 mb-0.5' : ''}">
                             <div class="flex items-start justify-between gap-3">
-                                <h3 class="text-sm font-bold text-slate-900 leading-tight">${l.subject}</h3>
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">${l.subject}</h3>
                                 <span class="shrink-0 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ${getBadgeClass(l.type)}">${l.type || 'Пара'}</span>
                             </div>
                             
-                            <div class="flex items-start gap-1.5 text-xs text-slate-600">
-                                <span class="shrink-0 text-slate-400 mt-[1px]">👤</span>
+                            <div class="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+                                <span class="shrink-0 text-slate-400 dark:text-slate-500 mt-[1px]">👤</span>
                                 <span class="leading-snug font-medium">${l.teacher || 'Не вказано'}</span>
                             </div>
                             
                             <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
                                 ${l.room ? `
-                                <div class="flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">
-                                    <span class="text-slate-400">📍</span> ${l.room}
+                                <div class="flex items-center gap-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/80 dark:border-slate-700">
+                                    <span class="text-slate-400 dark:text-slate-500">📍</span> ${l.room}
                                 </div>` : ''}
                                 
                                 ${cleanedGroup ? `
-                                <div class="flex items-center text-[11px] font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">
+                                <div class="flex items-center text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 shadow-sm">
                                     ${cleanedGroup}
                                 </div>` : ''}
                             </div>
                         </div>
                         `;
                     }).join('');
-                    
-                    slotCard.className = `flex bg-white rounded-xl border transition-all ${isNow ? 'border-blue-400 shadow-md ring-1 ring-blue-400' : 'border-slate-200 shadow-sm'} overflow-hidden relative`;
+
+                    slotCard.className = `flex bg-white dark:bg-slate-900 rounded-xl border transition-all ${isNow ? 'border-blue-400 dark:border-blue-500 shadow-md ring-1 ring-blue-400 dark:ring-blue-500' : 'border-slate-200 dark:border-slate-800 shadow-sm'} overflow-hidden relative`;
 
                     slotCard.innerHTML = `
-                        <div class="w-14 shrink-0 bg-slate-50 flex flex-col items-center py-2.5 border-r border-slate-100 ${isNow ? 'bg-blue-50/40' : ''}">
+                        <div class="w-14 shrink-0 bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center py-2.5 border-r border-slate-100 dark:border-slate-800/50 ${isNow ? 'bg-blue-50/40 dark:bg-blue-900/20' : ''}">
                             <div class="flex items-center justify-center gap-1.5 mb-1">
                                 ${isNow ? '<span class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50"></span>' : ''}
-                                <span class="text-[10px] font-bold ${isNow ? 'text-blue-600' : 'text-slate-500'} leading-none">${slot.number}</span>
+                                <span class="text-[10px] font-bold ${isNow ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'} leading-none">${slot.number}</span>
                             </div>
-                            <span class="text-xs font-bold text-slate-800 leading-none">${slot.start}</span>
-                            <span class="text-[9px] font-semibold text-slate-300 my-1 leading-none">—</span>
-                            <span class="text-xs font-bold text-slate-800 leading-none">${slot.end}</span>
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 leading-none">${slot.start}</span>
+                            <span class="text-[9px] font-semibold text-slate-300 dark:text-slate-600 my-1 leading-none">—</span>
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 leading-none">${slot.end}</span>
                         </div>
                         
                         <div class="flex-1 flex flex-col p-2.5 gap-2.5">
@@ -310,7 +355,7 @@
                     if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 }
             }
-            
+
             if (touchendX > touchstartX + 50) {
                 // Swipe right (попередній день)
                 if (activeDateIndex > 0) {
@@ -333,6 +378,35 @@
             touchendX = e.changedTouches[0].screenX;
             handleGesture();
         }, { passive: true });
+
+        // Theme toggle logic
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const darkIcon = document.getElementById('theme-toggle-dark-icon');
+        const lightIcon = document.getElementById('theme-toggle-light-icon');
+
+        function updateThemeIcons() {
+            if (document.documentElement.classList.contains('dark')) {
+                lightIcon.classList.remove('hidden');
+                darkIcon.classList.add('hidden');
+            } else {
+                lightIcon.classList.add('hidden');
+                darkIcon.classList.remove('hidden');
+            }
+        }
+
+        // Initialize icons state
+        updateThemeIcons();
+
+        themeToggleBtn.addEventListener('click', function () {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+            }
+            updateThemeIcons();
+        });
 
         loadSchedule();
     </script>
