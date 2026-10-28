@@ -7,7 +7,7 @@
     <title>Розклад занять</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/crutch.png" type="image/png">
-    <link rel="apple-touch-icon" href="assets/crutch.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -96,6 +96,7 @@
         <div class="max-w-xl mx-auto flex items-center justify-between">
             <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <span>🩼</span> Розклад занять
+                <span id="offline-badge" class="hidden text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800">Офлайн</span>
             </h1>
             <button id="theme-toggle" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors" aria-label="Toggle theme">
                 <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
@@ -159,35 +160,66 @@
             return nowTotal >= startTotal && nowTotal <= endTotal;
         }
 
+        function updateOnlineStatus() {
+            const badge = document.getElementById('offline-badge');
+            if (!badge) return;
+            if (!navigator.onLine) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
         async function loadSchedule() {
+            let loadedFromNetworkOrCache = false;
             try {
                 const response = await fetch('schedule.json');
-                scheduleData = await response.json();
-
-                if (!scheduleData.length) {
-                    document.getElementById('lessons-list').innerHTML = `<div class="p-4 text-center text-slate-500">Розклад порожній</div>`;
-                    return;
+                if (response.ok) {
+                    scheduleData = await response.json();
+                    loadedFromNetworkOrCache = true;
+                    try {
+                        localStorage.setItem('cached-schedule', JSON.stringify(scheduleData));
+                    } catch (e) {}
                 }
-
-                const today = new Date();
-                todayStr = [
-                    today.getDate().toString().padStart(2, '0'),
-                    (today.getMonth() + 1).toString().padStart(2, '0'),
-                    today.getFullYear()
-                ].join('.');
-
-                const foundIndex = scheduleData.findIndex(day => day.date === todayStr);
-                activeDateIndex = foundIndex !== -1 ? foundIndex : 0;
-
-                renderDaysNav();
-                renderSchedule('fade');
-
-                setInterval(() => renderSchedule('none'), 60000);
             } catch (err) {
+                console.warn('Fetch schedule failed:', err);
+            }
+
+            if (!loadedFromNetworkOrCache) {
+                const fallback = localStorage.getItem('cached-schedule');
+                if (fallback) {
+                    try {
+                        scheduleData = JSON.parse(fallback);
+                        loadedFromNetworkOrCache = true;
+                    } catch (e) {}
+                }
+            }
+
+            updateOnlineStatus();
+
+            if (!scheduleData || !scheduleData.length) {
                 document.getElementById('lessons-list').innerHTML = `
           <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
-            Не вдалося завантажити schedule.json. Переконайся, що файл існує.
+            Не вдалося завантажити розклад. Переконайся, що є інтернет або збережені дані.
           </div>`;
+                return;
+            }
+
+            const today = new Date();
+            todayStr = [
+                today.getDate().toString().padStart(2, '0'),
+                (today.getMonth() + 1).toString().padStart(2, '0'),
+                today.getFullYear()
+            ].join('.');
+
+            const foundIndex = scheduleData.findIndex(day => day.date === todayStr);
+            activeDateIndex = foundIndex !== -1 ? foundIndex : 0;
+
+            renderDaysNav();
+            renderSchedule('fade');
+
+            if (!window.scheduleInterval) {
+                window.scheduleInterval = setInterval(() => renderSchedule('none'), 60000);
             }
         }
 
@@ -407,6 +439,21 @@
             }
             updateThemeIcons();
         });
+
+        window.addEventListener('online', () => {
+            updateOnlineStatus();
+            loadSchedule();
+        });
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('SW registration failed:', err);
+                });
+            });
+        }
 
         loadSchedule();
     </script>

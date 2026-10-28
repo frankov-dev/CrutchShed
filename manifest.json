@@ -1,15 +1,30 @@
 {
-    "name": "CrutchShed",
+    "name": "Розклад занять — CrutchShed",
     "short_name": "CrutchShed",
+    "description": "Зручний розклад занять з підтримкою офлайн-режиму",
     "start_url": "./",
+    "scope": "./",
     "display": "standalone",
-    "background_color": "#0b0f19",
-    "theme_color": "#0b0f19",
+    "background_color": "#0f172a",
+    "theme_color": "#0f172a",
     "icons": [
+        {
+            "src": "android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
         {
             "src": "assets/crutch.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ]
 }
